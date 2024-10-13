@@ -63,7 +63,7 @@ class SarsaAgent:
         """
         q_value = 0.0
         # BEGIN SOLUTION
-        TD_target = reward + self.gamma * self.get_value(next_state)
+        TD_target = reward + self.gamma * self.get_qvalue(next_state, self.get__action(next_state)) 
         TD_error = TD_target - self.get_qvalue(state, action)
         q_value = self.get_qvalue(state, action) + self.learning_rate * TD_error
         # END SOLUTION
