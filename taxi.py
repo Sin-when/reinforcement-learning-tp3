@@ -28,18 +28,23 @@ from sarsa import SarsaAgent
 from gym.wrappers import RecordVideo
 
 
+#################################################
+# 0. Utils functions 
+#################################################
+
 
 env = gym.make("Taxi-v3", render_mode="rgb_array")
-env = RecordVideo(env, video_folder="./videos", episode_trigger=lambda x: x % 1000 == 0) 
 n_actions = env.action_space.n  # type: ignore
 
+
+# Function to plot rewards
 def plot_rewards(rewards, algorithm_name):
     plt.figure(figsize=(10, 6))
 
-    # Calculer les moyennes glissantes
+    # Calcuate the moving averages
     mean_rewards = np.convolve(rewards, np.ones(10) / 10, mode='valid')
 
-    # Tracer les récompenses moyennes
+    # Plot the mean rewards
     plt.plot(mean_rewards, label=f"{algorithm_name} (mean over 10 episodes)")
     plt.xlabel('Episodes')
     plt.ylabel('Average Total Reward')
@@ -48,6 +53,39 @@ def plot_rewards(rewards, algorithm_name):
     
     plt.savefig(algorithm_name + "_rewards.png")
     plt.close()  
+
+
+# Function to launch the simulation
+def launch_simulation(agent, env):
+    rewards_qlearning = []
+
+    ploting_rewards = []
+
+    
+    best_mean_reward = -float("inf")
+    stocking_agent = agent
+
+
+    for i in range(6000):
+        reward = play_and_train(env, agent)
+        rewards_qlearning.append(reward)
+
+        if i % 200 == 0:
+            current_mean = np.mean(rewards_qlearning[-100:])
+            ploting_rewards.append(current_mean)
+            print("mean reward", current_mean)
+
+        if current_mean > best_mean_reward:
+            best_mean_reward = current_mean
+            stocking_agent = agent
+        else:
+            agent = stocking_agent
+
+    ploting_rewards.append(np.mean(rewards_qlearning[-100:]))
+
+    env.close()  
+    return rewards_qlearning, ploting_rewards
+        
     
 
 #################################################
@@ -55,7 +93,7 @@ def plot_rewards(rewards, algorithm_name):
 #################################################
 
 agent = QLearningAgent(
-    learning_rate=0.5, epsilon=0.25, gamma=0.99, legal_actions=list(range(n_actions))
+    learning_rate=0.1, epsilon=0.1, gamma=0.99, legal_actions=list(range(n_actions))
 )
 
 
@@ -86,33 +124,18 @@ def play_and_train(env: gym.Env, agent: QLearningAgent, t_max=int(1e4)) -> float
     return total_reward
 
 
-rewards_qlearning = []
-best_mean_reward = -float("inf")
-stocking_agent = agent
-for i in range(3000):
-    reward = play_and_train(env, agent)
-    rewards_qlearning.append(reward)
+
+print("Q-Learning Algorithm")
+print("")
+print("")
 
 
-    if i % 200 == 0:
-        current_mean = np.mean(rewards_qlearning[-100:])
-        print("mean reward", current_mean)
 
-    if current_mean > best_mean_reward:
-        best_mean_reward = current_mean
-        stocking_agent = agent
-    else:
-        agent = stocking_agent
-    
-    
+#env = RecordVideo(env, video_folder="./Q-Learning", episode_trigger=lambda x: x % 2000 == 0) 
+#rewards_qlearning, ploting_rewards = launch_simulation(agent, env)
+#plot_rewards(ploting_rewards, "Q-Learning")
 
-
-        
-
-env.close()  
-plot_rewards(rewards_qlearning, "Q-Learning")
-assert np.mean(rewards_qlearning[-100:]) > 0.0
-
+#assert np.mean(rewards_qlearning[-100:]) > 0.0
 
 
 # TODO: créer des vidéos de l'agent en action
@@ -122,17 +145,22 @@ assert np.mean(rewards_qlearning[-100:]) > 0.0
 #################################################
 
 
+print("Q-Learning with Epsilon Scheduling Algorithm")
+print("")
+print("")
+
+
+# env = RecordVideo(env, video_folder="./Q-Learning-Eps", episode_trigger=lambda x: x % 1000 == 0) 
+
 agent = QLearningAgentEpsScheduling(
-    learning_rate=0.5, epsilon=0.25, gamma=0.99, legal_actions=list(range(n_actions))
+    learning_rate=0.1, epsilon=0.25, gamma=0.99, legal_actions=list(range(n_actions))
 )
 
-rewards = []
-for i in range(1000):
-    rewards.append(play_and_train(env, agent))
-    if i % 100 == 0:
-        print("mean reward", np.mean(rewards[-100:]))
+env = RecordVideo(env, video_folder="./Q-Learning-Eps", episode_trigger=lambda x: x % 2000 == 0) 
+rewards_qlearning, ploting_rewards = launch_simulation(agent, env)
+plot_rewards(ploting_rewards, "Q-Learning-Eps")
 
-assert np.mean(rewards[-100:]) > 0.0
+assert np.mean(rewards_qlearning[-100:]) > 0.0
 
 # TODO: créer des vidéos de l'agent en action
 
@@ -141,12 +169,14 @@ assert np.mean(rewards[-100:]) > 0.0
 # 3. Play with SARSA
 ####################
 
+print("Q-Learning with Sarsa")
+print("")
+print("")
 
 
-agent = SARSAAgent(learning_rate=0.5, gamma=0.99, legal_actions=list(range(n_actions)))
 
-rewards = []
-for i in range(1000):
-    rewards.append(play_and_train(env, agent))
-    if i % 100 == 0:
-        print("mean reward", np.mean(rewards[-100:]))
+agent = SarsaAgent(learning_rate=0.5, gamma=0.99, legal_actions=list(range(n_actions)))
+
+env = RecordVideo(env, video_folder="./SARSA", episode_trigger=lambda x: x % 2000 == 0) 
+rewards_qlearning, ploting_rewards = launch_simulation(agent, env)
+plot_rewards(ploting_rewards, "SARSA")
